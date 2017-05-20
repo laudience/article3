@@ -5,50 +5,32 @@ from utilitaires import *
 
 
 class GetData:
-
     def __init__(self, id):
-        self.url = ''.join(['http://www.data.gouv.fr/api/1/datasets/', id, '/full/'])
-        self.dataset_url = None
-        self.dataset = None
+        self.url = 'https://www.data.gouv.fr/api/1/datasets/' + id
+        self.dataset = []
 
+    def get_dataset_info(self):
+        print(self.url)
+        dataset_info_json = requests.get(self.url).json()
+        print('Number of datasets :', len(dataset_info_json['resources']))
 
-    def get_community_dataset_url(self):
-        response = requests.get(self.url).json()
+        for dataset in dataset_info_json['resources']:  # Save the datasets URL .zip
+            self.dataset.append({'title': dataset['title'], 'url': dataset['url']})
+            print(dataset['title'], dataset['format'], dataset['url'])
 
-        self.dataset_url = response['community_resources'][0]['url']
-        print(self.dataset_url)
+    def download(self):
+        self.get_dataset_info()
 
-    def get_community_dataset(self):
-        self.get_community_dataset_url()
-        response = requests.get(self.dataset_url).json()
+        for dataset in self.dataset:
+            zip_path = './datas/zipfiles/' + dataset['title'] + '.zip'
+            download_zip(dataset['url'], zip_path)
 
-        self.dataset = response
-
-    def save_community_dataset(self, outfile_name):
-        self.get_community_dataset()
-        outfile_directory = ''.join(['./datas/', outfile_name, '.json'])
-        with open(outfile_directory, 'w') as outfile:
-            json.dump(self.dataset, outfile)
-
-
-    def get_zip_dataset_url(self):
-        response = requests.get(self.url).json()
-
-        self.dataset_url = response['resources'][1]['url']
-        print(self.dataset_url)
-
-    def get_dataset_from_zip(self, zipname):
-        self.get_zip_dataset_url()
-        zip_path = ''.join(['./datas/zipfile/', zipname, '.zip'])
-        download_zip(self.dataset_url, zip_path)
-
-        zipfile = ZipFile(zip_path)
-        zipfile.extractall(path='./datas')
-        file_list = zipfile.namelist()
-        self.dataset = ZipFile(zip_path).read(file_list[0])
+            zipfile = ZipFile(zip_path)
+            zipfile.extractall(path='./datas')
 
 def main():
-    GetData('58306906c751df14a8c0bb7e').get_zip_dataset_url()
+    finances_publiques = GetData('58306906c751df14a8c0bb7e')
+    finances_publiques.download()
 
 if __name__ == '__main__':
     main()
